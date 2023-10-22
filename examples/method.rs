@@ -2,7 +2,7 @@
 /// 规范:结构体成员在外部不可直接访问 
 /// 由于方法支持成员和成员函数同名,可以通过method来访问私有成员
 /// 
-use rust_studycase::mod_standard_method::Rectangle;
+use rust_studycase::mod_method::Rectangle;
 
 fn main() {
 

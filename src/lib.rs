@@ -1,1 +1,1 @@
-pub mod mod_standard_method;
+pub mod mod_method;
