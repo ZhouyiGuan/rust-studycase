@@ -1,5 +1,10 @@
+/* 
+    同步代码中插入异步
+*/
+
 use tokio::runtime::Builder;
 use tokio::time::{sleep, Duration};
+
 
 fn main() {
     let runtime = Builder::new_multi_thread()
@@ -29,5 +34,5 @@ async fn async_task(i: u64) {
     let millis = 1000 - 50 * i;
     sleep(Duration::from_millis(millis)).await;
 
-    println!("[tokio] finish Task {}",i);
+    println!("[tokio] finish Task {}.",i);
 }

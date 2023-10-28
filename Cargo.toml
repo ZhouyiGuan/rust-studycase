@@ -7,7 +7,14 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+
 tokio-serial = "5.4.4"
+serialport = "4.2.2"
+
+mio = "0.8.9"
+mio-serial = "5.0.5"
 
 parking_lot = "0.12.1"
 lazy_static = "1.4.0"
+
+futures = "0.3"

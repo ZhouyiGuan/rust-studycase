@@ -1,4 +1,3 @@
-use lazy_static::lazy_static;
 use parking_lot::Mutex;
 use tokio::fs::File;
 use tokio_serial::SerialPort;
@@ -6,6 +5,7 @@ use tokio_serial::SerialPort;
 pub struct PORT {
     pub port_handle: Mutex<Option<Box<dyn SerialPort>>>, 
     pub tracefile_handle: Mutex<Option<File>>,
+    pub forwardport_handle: Mutex<Option<Box<dyn SerialPort>>>, 
 }
 
 impl PORT {
@@ -13,6 +13,7 @@ impl PORT {
         PORT {
             port_handle : Mutex::new(Option::None),
             tracefile_handle : Mutex::new(Option::None),
+            forwardport_handle : Mutex::new(Option::None),
         }
     }
     pub fn port_handle(&self,handle: Box<dyn SerialPort>) {
@@ -25,8 +26,6 @@ impl PORT {
         *port_handle = Option::Some(handle);
         drop(port_handle);
     } 
+    pub fn forwardport_handle(&self,handle: File) {} 
 }
 
-lazy_static! {
-    static ref NAMES: Mutex<String> = Mutex::new(String::from("Sunface, Jack, Allen"));
-}

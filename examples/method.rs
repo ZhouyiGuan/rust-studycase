@@ -4,6 +4,7 @@
 /// 
 use rust_studycase::mod_method::Rectangle;
 
+
 fn main() {
 
     
@@ -11,7 +12,7 @@ fn main() {
     println!("{}",rec.name());
 
     // 以下两种方式都会报错:
-    // let mut rec: Rectangle = Rectangle{name: "rec1".to_string(),width: 10,height: 20};
-    // println!("{}",rec.name);
+    let mut rec1: Rectangle = Rectangle{name: "rec1".to_string(),width: 10,height: 20};
+    println!("{}",rec.name);
 
 }

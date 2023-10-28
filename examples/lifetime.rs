@@ -1,24 +1,22 @@
 fn main() {
-    let string1 = String::from("abcd");
-    let string2 = "xyz";
+    let string1 = String::from("abcdefg");
+    let mut string2 = & string1;
+    string2.push_str("11");
+    let mut string3 = & string1;
 
-    let result = longest(string1.as_str(), string2);
-    println!("The longest string is {}", result);
+
+    // {
+    //     let string2 = String::from("abcde");
+    //     result = longest(string1.as_str(), string2.as_str());
+    // }
+    // // println!("string1{}",string1);
+    // println!("The longest string is {}", result);
 }
 
-fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
-    if x.len() > y.len() {
-        x
-    } else {
-        y
-    }
-}
-// 以下代码报错
-/* fn longest(x: &str, y: &str) -> &str {
-    if x.len() > y.len() {
-        x
-    } else {
-        y
-    }
-}
- */
+// fn longest(x: & str, y: & str) -> & str {
+//     if x.len() > y.len() {
+//         x
+//     } else {
+//         y
+//     }
+// }
