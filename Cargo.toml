@@ -17,12 +17,9 @@ mio-serial = "5.0.5"
 parking_lot = "0.12.1"
 lazy_static = "1.4.0"
 
-<<<<<<< HEAD
 futures = "0.3"
-=======
 axum = "0.6.20"
 redis = { version = "0.23.2", features = ["tokio-comp"] }
 futures-util = { version = "0.3.15", default-features = false }
 uuid = { version = "1.4.1", features = ["v4", "fast-rng"] }
 bytes = "1.5.0"
->>>>>>> ee17357 (feat:redisPubsub)
