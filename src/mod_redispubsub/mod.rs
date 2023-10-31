@@ -11,7 +11,7 @@ type CallBack = fn(channel: &str, msg: &[u8]);
 pub struct RedisClient {
     client: redis::Client,
     sub_msg_callbacks: Arc<Mutex<HashMap<String, (Uuid, CallBack)>>>,
-    handler: Mutex<Option<JoinHandle<Result<(), RedisError>>>>
+    handle_sub_msg: Mutex<Option<JoinHandle<Result<(), RedisError>>>> /* handle_sub_msg保存了sub_msg这个持续运行的任务的句柄(开始任务的时候可以存入,想要终止任务的时候可以关闭这个句柄即可) */
 }
 
 impl RedisClient {
@@ -19,20 +19,20 @@ impl RedisClient {
         Self {
             client: redis::Client::open("redis://192.168.1.33/").unwrap(),
             sub_msg_callbacks: Arc::new(Mutex::new(HashMap::new())),
-            handler: Mutex::new(None)
+            handle_sub_msg: Mutex::new(None)
         }
     }
 
     pub async fn start<'a>(&self) {
         self.stop().await;
-        let mut mutex = self.handler.lock().await;
+        let mut mutex = self.handle_sub_msg.lock().await;
         let map = self.sub_msg_callbacks.lock().await;
-        let patterns: Vec<String> = map.keys().cloned().collect();
-        *mutex = Some(tokio::spawn(sub_redis_msg(patterns)));
+        let channels: Vec<String> = map.keys().cloned().collect();/* 获取map中所有的keys的迭代器,然后cloned会克隆迭代器中每一项,最后collect会收集到一个集合中 */
+        *mutex = Some(tokio::spawn(sub_redis_msg(channels)));
     }
 
     pub async fn stop(&self) {
-        let mutex = self.handler.lock().await;
+        let mutex = self.handle_sub_msg.lock().await;
         if (*mutex).is_some() {
             mutex.as_ref().unwrap().abort();
         }
@@ -44,12 +44,12 @@ impl RedisClient {
         Ok(())
     }
 
-    pub async fn subscribe(&self, pattern: &str, cb: CallBack) -> Uuid {
-        println!("sub echo");
+    pub async fn subscribe(&self, channel: &str, cb: CallBack) -> Uuid {
+        println!("sub to channel:{}",channel);
         let mut map = self.sub_msg_callbacks.lock().await;
         let uuid = Uuid::new_v4();
-        map.insert(String::from(pattern), (uuid, cb));
-        uuid
+        map.insert(String::from(channel), (uuid, cb));/* 每个channel会有一个自己的uuid以及对应的消息处理函数 */
+        uuid/* 使用这个函数可以获取channel的uuid */
     }
 
     pub async fn unsubscribe(&self, uuid: Uuid) {
@@ -63,37 +63,36 @@ impl RedisClient {
     }
 }
 
-static REDIS_CLIENT: OnceCell<RedisClient> = OnceCell::const_new();
+
+static REDIS_CLIENT: OnceCell<RedisClient> = OnceCell::const_new();/* 全局变量(唯一单例) */
+
+/* 调用这个函数就是获取这个单例的引用.和我们用lasy_static然后解锁是一样的 */
 pub async fn get_redis_ins() -> &'static RedisClient {
     REDIS_CLIENT.get_or_init(|| async {
-        println!("new redis client");
+        println!("init a redis client");
         RedisClient::new()
     }).await
 }
 
-async fn sub_redis_msg(pattern: Vec<String>) -> redis::RedisResult<()> {
-    println!("new sub redis msg!!!!!!");
+/* 关键!!!! 把loop放进一个async的task中!!!这样的话这个loop就会异步执行,不需要创建线程单独跑一个任务.我们只需要把不同的任务spawn进一个任务 */
+async fn sub_redis_msg(channels: Vec<String>) -> redis::RedisResult<()> {
+    println!("listening to sub channels...");
     let mut pubsub_conn = get_redis_ins().await
         .client
         .get_async_connection()
         .await?
         .into_pubsub();
-    pubsub_conn.psubscribe(pattern).await?;
+    pubsub_conn.psubscribe(channels).await?;
     let mut pubsub_stream = pubsub_conn.on_message();
 
     loop {
-        let msg = pubsub_stream.next().await;
-        if msg.is_none() {
+        let msg = pubsub_stream.next().await;/* 这里的next就是检查这个流是否有数据,没数据就挂起等待 */
+        if msg.is_none() {/* 这里是none的可能性是流被关闭了,而不是检查是否有数据 */
             continue;
         }
         let msg = msg.unwrap();
-        // let pattern = msg.get_pattern::<String>();
         let channel = msg.get_channel_name();
         let payload = msg.get_payload_bytes();
-        // println!("channel: {}, data: {:?}", channel, payload);
-
-        // println!("pattern: {}", pattern.unwrap_or(String::from("none")));
-        // println!("map: {:?}", REDIS_CLIENT.sub_msg_callbacks);
 
         let map = get_redis_ins().await.sub_msg_callbacks.lock().await;
         let (_, cb) = match map.get(channel) {
@@ -101,13 +100,5 @@ async fn sub_redis_msg(pattern: Vec<String>) -> redis::RedisResult<()> {
             None => continue,
         };
         cb(channel, payload);
-
-        // tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        // let msg = match msg {
-        //     Some(msg) => (msg.get_channel_name(), msg.get_payload_bytes()),
-        //     None => continue,
-        // };
-        // println!("channel: {}, data: {:?}", msg.0, msg.1);
     }
 }
