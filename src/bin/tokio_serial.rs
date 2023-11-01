@@ -6,7 +6,7 @@ use serialport::SerialPort;
 #[tokio::main]
 async fn main()  {
     tokio::spawn(async move {
-        recv().await;
+        let result = recv().await;
     });
     sleep(Duration::from_secs(20)).await;
 }
@@ -18,7 +18,7 @@ async fn recv ()  {
     loop{
         let mut buf: [u8;1024] = [0;1024];
         let num: usize = port.read(buf.as_mut_slice()).unwrap();
-        process(buf,num).await;
+        process(buf,num).await; 
     }
     
 }
